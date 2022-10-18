@@ -131,20 +131,20 @@ def game_window():
 
         pipe_group.update()
 
-        if bird.rect.y > FLOOR_Y or bird.rect.y < 0:
+        if bird.rect.y > FLOOR_Y or bird.rect.y < 0 or pygame.sprite.spritecollideany(bird, pipe_group):
             AUDIO['hit'].play()
             AUDIO['die'].play()
             result = {'bird':bird, 'pipe_group':pipe_group}
             return result
 
-        for pipe in pipe_group.sprites():
-            right_to_left = max(bird.rect.right, pipe.rect.right) - min(bird.rect.left, pipe.rect.left)
-            bottom_to_top = max(bird.rect.bottom, pipe.rect.bottom) - min(bird.rect.height, pipe.rect.height)
-            if right_to_left < bird.rect.width + pipe.rect.width and bottom_to_top < bird.rect.height + pipe.rect.height:
-                AUDIO['hit'].play()
-                AUDIO['die'].play()
-                result = {'bird':bird, 'pipe_group':pipe_group}
-                return result
+        # for pipe in pipe_group.sprites():
+        #     right_to_left = max(bird.rect.right, pipe.rect.right) - min(bird.rect.left, pipe.rect.left)
+        #     bottom_to_top = max(bird.rect.bottom, pipe.rect.bottom) - min(bird.rect.height, pipe.rect.height)
+        #     if right_to_left < bird.rect.width + pipe.rect.width and bottom_to_top < bird.rect.height + pipe.rect.height:
+        #         AUDIO['hit'].play()
+        #         AUDIO['die'].play()
+        #         result = {'bird':bird, 'pipe_group':pipe_group}
+        #         return result
 
         SCREEN.blit(IMAGES['bgpic'], (0, 0))
         pipe_group.draw(SCREEN)
