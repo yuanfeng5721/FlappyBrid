@@ -1,4 +1,6 @@
 from distutils import extension
+from turtle import distance
+from unittest import result
 import pygame
 import random
 import os
@@ -40,8 +42,8 @@ def main():
         pipe = IMAGES[random.choice(['green-pipe','red-pipe'])]
         IMAGES['pipes'] = [pipe, pygame.transform.flip(pipe, False, True)]
         menu_window()
-        game_window()
-        end_window()
+        result =game_window()
+        end_window(result)
         
 def menu_window():
     floor_x = 0
@@ -83,8 +85,24 @@ def menu_window():
     
 
 def game_window():
+    AUDIO['flap'].play()
     floor_x = 0
+
     bird = Bird(W*0.2, H*0.4)
+
+    n_pairs = 4
+    distance = 150
+    pipe_gap = 100
+    pipes = []
+    for i in range(n_pairs):
+        pipe_y = random.randint(int(H*0.3), int(H*0.7))
+        pipe_up = Pipe(W + i*distance, pipe_y, True)
+        pipe_down = Pipe(W + i*distance, pipe_y - pipe_gap, False)
+        pipes.append(pipe_up)
+        pipes.append(pipe_down)
+
+
+
     while True:
         flap = False
         for event in pygame.event.get():
@@ -101,27 +119,52 @@ def game_window():
 
         bird.update(flap)
 
+        first_pipe_up = pipes[0]
+        first_pipe_down = pipes[1]
+        if first_pipe_up.rect.right < 0:
+            pipes.remove(first_pipe_up)
+            pipes.remove(first_pipe_down)
+            pipe_y = random.randint(int(H*0.3), int(H*0.7))
+            new_pipe_up = Pipe(first_pipe_up.rect.x + n_pairs*distance, pipe_y, True)
+            new_pipe_down = Pipe(first_pipe_down.rect.x + n_pairs*distance, pipe_y - pipe_gap, False)
+            pipes.append(new_pipe_up)
+            pipes.append(new_pipe_down)
+            del first_pipe_up, first_pipe_down
+
+        for pipe in pipes:
+            pipe.update()
+
+        if bird.rect.y > FLOOR_Y or bird.rect.y < 0:
+            AUDIO['hit'].play()
+            AUDIO['die'].play()
+            result = {'bird':bird}
+            return result
+
         SCREEN.blit(IMAGES['bgpic'], (0, 0))
-        SCREEN.blit(IMAGES['pipes'][0], (W/2, H/2))
+        for pipe in pipes:
+            SCREEN.blit(pipe.image, pipe.rect)
         SCREEN.blit(IMAGES['floor'], (floor_x, FLOOR_Y))
         SCREEN.blit(bird.image, bird.rect)
         pygame.display.update()
         CLOCK.tick(FPS)
 
-def end_window():
+def end_window(result):
     gameover_x = (W - IMAGES['gameover'].get_width())/2
     gameover_y = (FLOOR_Y - IMAGES['gameover'].get_height())/2
     
+    bird = result['bird']
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 return
+
+        bird.go_die()
         SCREEN.blit(IMAGES['bgpic'], (0, 0))
         SCREEN.blit(IMAGES['floor'], (0, FLOOR_Y))  
         SCREEN.blit(IMAGES['gameover'], (gameover_x, gameover_y))
-        SCREEN.blit(IMAGES['birds'][0], (W/2, H*0.3))
+        SCREEN.blit(bird.image, bird.rect)
         pygame.display.update()
         CLOCK.tick(FPS)
 
@@ -157,5 +200,30 @@ class Bird:
         self.idx %= len(self.frames)
         self.image = self.images[self.frames[self.idx]]
         self.image = pygame.transform.rotate(self.image, self.rotate)
+
+    def go_die(self):
+        if self.rect.y < FLOOR_Y:
+            self.rect.y += self.max_y_vel
+            self.rotate = -90
+            self.image = self.images[self.frames[self.idx]]
+            self.image = pygame.transform.rotate(self.image, self.rotate)
+
+class Pipe:
+    def __init__(self, x, y, upwards=True):
+        if upwards:
+            self.image = IMAGES['pipes'][0]
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.top = y
+        else:
+            self.image = IMAGES['pipes'][1]
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.bottom = y
+        self.x_vel = -4
+
+    def update(self):
+        self.rect.x += self.x_vel
+
 
 main()
