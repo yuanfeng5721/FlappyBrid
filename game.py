@@ -93,15 +93,13 @@ def game_window():
     n_pairs = 4
     distance = 150
     pipe_gap = 100
-    pipes = []
+    pipe_group = pygame.sprite.Group()
     for i in range(n_pairs):
         pipe_y = random.randint(int(H*0.3), int(H*0.7))
         pipe_up = Pipe(W + i*distance, pipe_y, True)
         pipe_down = Pipe(W + i*distance, pipe_y - pipe_gap, False)
-        pipes.append(pipe_up)
-        pipes.append(pipe_down)
-
-
+        pipe_group.add(pipe_up)
+        pipe_group.add(pipe_down)
 
     while True:
         flap = False
@@ -119,20 +117,18 @@ def game_window():
 
         bird.update(flap)
 
-        first_pipe_up = pipes[0]
-        first_pipe_down = pipes[1]
+        first_pipe_up = pipe_group.sprites()[0]
+        first_pipe_down = pipe_group.sprites()[1]
         if first_pipe_up.rect.right < 0:
-            pipes.remove(first_pipe_up)
-            pipes.remove(first_pipe_down)
             pipe_y = random.randint(int(H*0.3), int(H*0.7))
             new_pipe_up = Pipe(first_pipe_up.rect.x + n_pairs*distance, pipe_y, True)
             new_pipe_down = Pipe(first_pipe_down.rect.x + n_pairs*distance, pipe_y - pipe_gap, False)
-            pipes.append(new_pipe_up)
-            pipes.append(new_pipe_down)
-            del first_pipe_up, first_pipe_down
+            pipe_group.add(new_pipe_up)
+            pipe_group.add(new_pipe_down)
+            first_pipe_up.kill()
+            first_pipe_down.kill()
 
-        for pipe in pipes:
-            pipe.update()
+        pipe_group.update()
 
         if bird.rect.y > FLOOR_Y or bird.rect.y < 0:
             AUDIO['hit'].play()
@@ -141,8 +137,7 @@ def game_window():
             return result
 
         SCREEN.blit(IMAGES['bgpic'], (0, 0))
-        for pipe in pipes:
-            SCREEN.blit(pipe.image, pipe.rect)
+        pipe_group.draw(SCREEN)
         SCREEN.blit(IMAGES['floor'], (floor_x, FLOOR_Y))
         SCREEN.blit(bird.image, bird.rect)
         pygame.display.update()
@@ -208,8 +203,9 @@ class Bird:
             self.image = self.images[self.frames[self.idx]]
             self.image = pygame.transform.rotate(self.image, self.rotate)
 
-class Pipe:
+class Pipe(pygame.sprite.Sprite):
     def __init__(self, x, y, upwards=True):
+        pygame.sprite.Sprite.__init__(self)
         if upwards:
             self.image = IMAGES['pipes'][0]
             self.rect = self.image.get_rect()
