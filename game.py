@@ -1,5 +1,6 @@
 from asyncio.windows_utils import pipe
 from distutils import extension
+from time import sleep
 from turtle import distance, right
 from unittest import result
 import pygame
@@ -86,6 +87,7 @@ def menu_window():
     
 
 def game_window():
+    score = 0
     AUDIO['flap'].play()
     floor_x = 0
 
@@ -132,10 +134,15 @@ def game_window():
         pipe_group.update()
 
         if bird.rect.y > FLOOR_Y or bird.rect.y < 0 or pygame.sprite.spritecollideany(bird, pipe_group):
+            bird.dying = True
             AUDIO['hit'].play()
             AUDIO['die'].play()
-            result = {'bird':bird, 'pipe_group':pipe_group}
+            result = {'bird':bird, 'pipe_group':pipe_group, 'score':score}
             return result
+
+        if bird.rect.left + first_pipe_up.x_vel < first_pipe_up.rect.centerx < bird.rect.left:
+            AUDIO['score'].play()
+            score += 1
 
         # for pipe in pipe_group.sprites():
         #     right_to_left = max(bird.rect.right, pipe.rect.right) - min(bird.rect.left, pipe.rect.left)
@@ -149,6 +156,7 @@ def game_window():
         SCREEN.blit(IMAGES['bgpic'], (0, 0))
         pipe_group.draw(SCREEN)
         SCREEN.blit(IMAGES['floor'], (floor_x, FLOOR_Y))
+        show_score(score)
         SCREEN.blit(bird.image, bird.rect)
         pygame.display.update()
         CLOCK.tick(FPS)
@@ -159,22 +167,37 @@ def end_window(result):
     
     bird = result['bird']
     pipe_group = result['pipe_group']
+    score = result['score']
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                quit()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                return
+        if bird.dying:
+            bird.go_die()
+        else:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    return
 
         bird.go_die()
         SCREEN.blit(IMAGES['bgpic'], (0, 0))
         pipe_group.draw(SCREEN)
         SCREEN.blit(IMAGES['floor'], (0, FLOOR_Y))  
+        show_score(score)
         SCREEN.blit(IMAGES['gameover'], (gameover_x, gameover_y))
         SCREEN.blit(bird.image, bird.rect)
         
         pygame.display.update()
         CLOCK.tick(FPS)
+
+def show_score(score):
+    score_str = str(score)
+    n = len(score_str)
+    w = IMAGES["0"].get_width()*1.1
+    x= (W - n*w)/2
+    y = H * 0.1
+    for number in score_str:
+        SCREEN.blit(IMAGES[number], (x, y))
+        x += w
 
 class Bird:
     def __init__(self, x, y):
@@ -194,6 +217,7 @@ class Bird:
         self.rotate_vel = -3
         self.y_ve_after_flap = -10
         self.rotate_after_flap = 45
+        self.dying = False
 
     def update(self, flap=False):
         if flap:
@@ -215,6 +239,8 @@ class Bird:
             self.rotate = -90
             self.image = self.images[self.frames[self.idx]]
             self.image = pygame.transform.rotate(self.image, self.rotate)
+        else:
+            self.dying = False
 
 class Pipe(pygame.sprite.Sprite):
     def __init__(self, x, y, upwards=True):
