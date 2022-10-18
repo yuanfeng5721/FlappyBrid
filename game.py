@@ -6,22 +6,35 @@ from unittest import result
 import pygame
 import random
 import os
+import sys
 
 # Constants 常量
 W, H = 288, 512
 FPS = 30
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+ 
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(relative_path)
+
 # Setup 设置
 pygame.init()
 SCREEN = pygame.display.set_mode((W, H))
 pygame.display.set_caption("Flappy Bird")
+icon_path = resource_path('assets\\sprites\\logo_small.ico')
+icon = pygame.image.load(icon_path)
+pygame.display.set_icon(icon)
+
 CLOCK = pygame.time.Clock()
 
 # Materials 素材
 IMAGES = {}
-for image in os.listdir('assets/sprites/'):
+image_path = resource_path('assets\\sprites')
+for image in os.listdir(image_path):
     name, extension = os.path.splitext(image)
-    path = os.path.join('assets/sprites', image)
+    path = os.path.join(image_path, image)
     IMAGES[name] = pygame.image.load(path)
 
 print(IMAGES)
@@ -30,9 +43,10 @@ FLOOR_Y = H - IMAGES['floor'].get_height()
 FLOOR_GAP = IMAGES['floor'].get_width() -W
 #sound resoures
 AUDIO = {}
-for audio in os.listdir('assets/audio/'):
+audio_path = resource_path('assets\\audio')
+for audio in os.listdir(audio_path):
     name, extension = os.path.splitext(audio)
-    path = os.path.join('assets/audio', audio)
+    path = os.path.join(audio_path, audio)
     AUDIO[name] = pygame.mixer.Sound(path)
 
 def main():
@@ -95,7 +109,7 @@ def game_window():
 
     n_pairs = 4
     distance = 150
-    pipe_gap = 100
+    pipe_gap = 120
     pipe_group = pygame.sprite.Group()
     for i in range(n_pairs):
         pipe_y = random.randint(int(H*0.3), int(H*0.7))
@@ -260,5 +274,7 @@ class Pipe(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += self.x_vel
 
+def quit():
+    sys.exit()
 
 main()
